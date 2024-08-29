@@ -1,7 +1,128 @@
-stages:
-  - 
+include:
+  - local: 'gitlab-ci/ci-templates.yml'
 
-deploy:
-  stage: 
-  script:
-    - ansible-playbook -i inventory/hosts.ini all.yml
+# Шаблон для установки IP
+.configure_ip:
+  extends: .ip_template
+  artifacts:
+    paths:
+      - $NOTIFY_FILES
+    expire_in: 1 hour
+
+# Шаблон для конфигурирования DHCPv4
+.configure_dhcp4:
+  extends: .dhcp4_template
+  artifacts:
+    paths:
+      - $NOTIFY_FILES
+    expire_in: 1 hour
+
+# Шаблон для конфигурирования DHCPv6 (1 часть)
+.configure_dhcp6v1:
+  extends: .dhcp6v1_template
+  artifacts:
+    paths:
+      - $NOTIFY_FILES
+    expire_in: 1 hour
+
+# Шаблон для активации сетевых интерфейсов ens36
+.configure_resnet:
+  extends: .resnet_template
+  artifacts:
+    paths:
+      - $NOTIFY_FILES
+    expire_in: 1 hour
+
+# Шаблон для конфигурирования DHCPv6 (2 часть)
+.configure_dhcp6v2:
+  extends: .dhcp6v2_template
+  artifacts:
+    paths:
+      - $NOTIFY_FILES
+    expire_in: 1 hour
+
+# Шаблон для перезапуска сетевых интерфейсов
+.configure_ens36:
+  extends: .ens36_template
+  artifacts:
+    paths:
+      - $NOTIFY_FILES
+    expire_in: 1 hour
+
+
+configured_ip:
+  extends: .configure_ip
+  variables:
+    SERVER_LIMIT: 'r0_server'
+    NOTIFY_FILES: 'r0_server_ip.txt'
+  tags:
+    - r0.server
+  needs:
+    - Installing_packages
+  stage: configure_ip
+
+configured_dhcp4:
+  extends: .configure_dhcp4
+  variables:
+    SERVER_LIMIT: 'r0_server'
+    NOTIFY_FILES: 'r0_server_ip.txt'
+  tags:
+    - r0.server
+  needs:
+    - configured_ip
+  stage: configure_ip
+
+configured_dhcp6v1:
+  extends: .configure_dhcp6v1
+  variables:
+    SERVER_LIMIT: 'r0_server'
+    NOTIFY_FILES: 'r0_server_ip.txt'
+  tags:
+    - r0.server
+  needs:
+    - configured_dhcp4
+  stage: configure_ip
+
+configured_resnet:
+  extends: .configure_resnet
+  variables:
+    SERVER_LIMIT: 'r0_server'
+    NOTIFY_FILES: 'r0_server_ip.txt'
+  tags:
+    - r0.server
+  needs:
+    - configured_dhcp6v1
+  stage: configure_ip
+
+configured_dhcp6v2:
+  extends: .configure_dhcp6v2
+  variables:
+    SERVER_LIMIT: 'r0_server'
+    NOTIFY_FILES: 'r0_server_ip.txt'
+  tags:
+    - r0.server
+  needs:
+    - configured_resnet
+  stage: configure_ip
+
+configured_ens36:
+  extends: .configure_ens36
+  variables:
+    SERVER_LIMIT: 'r0_server'
+    NOTIFY_FILES: 'r0_server_ip.txt'
+  tags:
+    - r0.server
+  needs:
+    - configured_dhcp6v2
+  stage: configure_ip
+
+# Уведомление после конфигурирования сети
+notify_ip:
+  extends: .notify_template
+  variables:
+    PLAYBOOK_INDEX: "1"
+    NOTIFY_FILES: 'r0_server_packages.txt'
+    MESSAGE: "Результаты выполнения Ansible playbooks:\n1) playbook #2 выполнен успешно! (IPv4, IPv6, DHCPv4, DHCPv6, Routing)\n"
+  needs:
+    - configured_ens36
+  stage: notify_ip

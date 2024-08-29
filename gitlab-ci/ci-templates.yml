@@ -21,6 +21,48 @@
     TAGS: package
     FILE_SUFFIX: packages.txt
 
+# Шаблон для установки IP
+.ip_template:
+  extends: .templates
+  variables:
+    TAGS: ip
+    FILE_SUFFIX: ip.txt
+
+# Шаблон для конфигурирования DHCPv4
+.dhcp4_template:
+  extends: .templates
+  variables:
+    TAGS: dhcp4
+    FILE_SUFFIX: dhcp4.txt
+
+# Шаблон для конфигурирования DHCPv6 (1 часть)
+.dhcp6v1_template:
+  extends: .templates
+  variables:
+    TAGS: dhcp6v1
+    FILE_SUFFIX: dhcp6v1.txt
+
+# Шаблон для активации сетевых интерфейсов ens36
+.resnet_template:
+  extends: .templates
+  variables:
+    TAGS: resnet
+    FILE_SUFFIX: resnet.txt
+
+# Шаблон для конфигурирования DHCPv6 (2 часть)
+.dhcp6v2_template:
+  extends: .templates
+  variables:
+    TAGS: dhcp6v2
+    FILE_SUFFIX: dhcp6v2.txt
+
+# Шаблон для перезапуска сетевых интерфейсов
+.ens36_template:
+  extends: .templates
+  variables:
+    TAGS: ens36
+    FILE_SUFFIX: ens36.txt
+
 # Шаблон для уведомлений
 .notify_template:
   stage: notify_ip
@@ -44,3 +86,4 @@
     paths:
       - "r*.txt"
   when: always
+
