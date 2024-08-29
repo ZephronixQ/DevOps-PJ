@@ -1,0 +1,36 @@
+default-lease-time 2592000;
+
+preferred-lifetime 604800;
+
+option dhcp-renewal-time 3600;
+
+option dhcp-rebinding-time 7200;
+
+allow leasequery;
+
+option dhcp6.preference 255;
+
+option dhcp6.info-refresh-time 21600;
+
+# Настройка DHCPv6
+{% if servers[inventory_hostname] is defined and servers[inventory_hostname].dhcp6 is defined %}
+{% set server = servers[inventory_hostname].dhcp6 %}
+
+subnet6 {{ server.subnet6 }} {
+    range6 {{ server.range6_start }} {{ server.range6_end }};
+}
+
+{% if server.hosts is defined %}
+{% for host, details in server.hosts.items() %}
+host {{ host }} {
+    fixed-address6 {{ details.fixed_address6 }};
+    fixed-prefix6 {{ details.fixed_prefix6 }};
+}
+{% endfor %}
+{% else %}
+# Нет хостов для настройки DHCPv6
+{% endif %}
+
+{% else %}
+# Нет настроек DHCPv6 для этого хоста: {{ inventory_hostname }}
+{% endif %}

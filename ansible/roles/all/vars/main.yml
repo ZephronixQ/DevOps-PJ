@@ -1,0 +1,167 @@
+servers:
+  R1:
+    name: R1
+    interfaces:
+      ens36:
+        address: 111.100.100.2
+        netmask: 24
+        conn_name: "Wired connection 1"
+        ipv6_address: "1110:A::100"
+        ipv6_prefix: 64
+      ens37:
+        address: 100.100.100.1
+        netmask: 26
+        conn_name: "Wired connection 2"
+        ipv6_address: "10:100:C::1"
+        ipv6_prefix: 122
+        radvd: "10:100:C::"
+    apt_R1:
+      - network-manager
+      - isc-dhcp-server
+      - radvd
+      - frr
+      - strongswan
+      - chrony
+      - iperf3
+      - nfs-common
+      - firewalld
+      - iptables-persistent
+    sysctl_settings:
+      common:
+        - net.ipv4.ip_forward=1
+        - net.ipv6.conf.all.forwarding=1
+      specific:
+        - net.ipv6.conf.ens37.accept_ra=2
+    dhcp:
+      subnet: "100.100.100.0"
+      netmask: "255.255.255.192"
+      range_start: "100.100.100.2"
+      range_end: "100.100.100.61"
+      router: "100.100.100.1"
+      hosts:
+        PC-R1:
+          mac: "{{ lookup('file', 'files/mac-to-PC_R1.txt') }}"
+          fixed_address: "100.100.100.2"
+    dhcp6:
+      subnet6: "10:100:C::/122"
+      range6_start: "10:100:C::2"
+      range6_end: "10:100:C::3e"
+      hosts:
+        PC-R1:
+          duid: "{{ lookup('file', 'files/duid-R1.txt') }}"
+          fixed_address6: "10:100:C::3"
+          fixed_prefix6: "10:100:C::/122"
+
+  PC_R1:
+    name: PC-R1
+    interfaces:
+      ens36:
+        conn_name: "Wired connection 1"
+    apt_PC_R1:
+      - network-manager
+      - bind9
+      - chrony
+      - clamav
+      - nfs-kernel-server
+      - nfs-common
+      - cups
+      - firewalld
+      - iptables-persistent
+    sysctl_settings:
+      common:
+        - net.ipv4.ip_forward=1
+        - net.ipv6.conf.all.forwarding=1
+
+  R2:
+    name: R2
+    interfaces:
+      ens36:
+        address: 222.100.100.2
+        netmask: 24
+        conn_name: "Wired connection 1"
+        ipv6_address: "2220:B::100"
+        ipv6_prefix: 64
+      ens37:
+        address: 200.200.200.1
+        netmask: 28
+        conn_name: "Wired connection 2"
+        ipv6_address: "20:200:C::1"
+        ipv6_prefix: 122
+        radvd: "20:200:C::"
+    apt_R2:
+      - network-manager
+      - isc-dhcp-server
+      - radvd
+      - frr
+      - strongswan
+      - chrony
+      - nfs-common
+      - firewalld
+      - iptables-persistent
+    sysctl_settings:
+      common:
+        - net.ipv4.ip_forward=1
+        - net.ipv6.conf.all.forwarding=1
+      specific:
+        - net.ipv6.conf.ens37.accept_ra=2
+    dhcp:
+      subnet: "200.200.200.0"
+      netmask: "255.255.255.240"
+      range_start: "200.200.200.2"
+      range_end: "200.200.200.11"
+      router: "200.200.200.1"
+      hosts:
+        PC-R2:
+          mac: "{{ lookup('file', 'files/mac-to-PC_R2.txt') }}"
+          fixed_address: "200.200.200.2"
+    dhcp6:
+      subnet6: "20:200:C::/122"
+      range6_start: "20:200:C::2"
+      range6_end: "20:200:C::3e"
+      hosts:
+        PC-R2:
+          duid: "{{ lookup('file', 'files/duid-R1.txt') }}"
+          fixed_address6: "20:200:C::3"
+          fixed_prefix6: "20:200:C::/122"
+
+  PC_R2:
+    name: PC-R2
+    interfaces:
+      ens36:
+        conn_name: "Wired connection 1"
+    apt_PC_R2:
+      - network-manager
+      - chrony
+      - clamav
+      - nfs-common
+      - firewalld
+      - iptables-persistent
+    sysctl_settings:
+      common:
+        - net.ipv4.ip_forward=1
+        - net.ipv6.conf.all.forwarding=1
+
+  R0:
+    name: R0
+    interfaces:
+      ens36:
+        address: 111.100.100.1
+        netmask: 24
+        conn_name: "Wired connection 1"
+        ipv6_address: "1110:A::1"
+        ipv6_prefix: 64
+      ens37:
+        address: 222.100.100.1
+        netmask: 24
+        conn_name: "Wired connection 2"
+        ipv6_address: "2220:B::1"
+        ipv6_prefix: 64
+    apt_R0:
+      - network-manager
+      - chrony
+      - firewalld
+      - iptables-persistent
+    sysctl_settings:
+      common:
+        - net.ipv4.ip_forward=1
+        - net.ipv6.conf.all.forwarding=1

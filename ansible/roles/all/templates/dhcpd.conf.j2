@@ -1,0 +1,29 @@
+# Настройка DHCP-сервера
+default-lease-time 600;
+max-lease-time 7200;
+
+ddns-update-style none;
+
+authoritative;
+
+{% if servers[inventory_hostname] is defined and servers[inventory_hostname].dhcp is defined %}
+{% set server = servers[inventory_hostname].dhcp %}
+subnet {{ server.subnet }} netmask {{ server.netmask }} {
+    range {{ server.range_start }} {{ server.range_end }};
+    option routers {{ server.router }};
+}
+
+{% if server.hosts is defined %}
+{% for host, details in server.hosts.items() %}
+host {{ host }} {
+    hardware ethernet {{ details.mac }};
+    fixed-address {{ details.fixed_address }};
+}
+{% endfor %}
+{% else %}
+# Нет хостов для настройки DHCP
+{% endif %}
+
+{% else %}
+# Нет настроек DHCP для этого хоста: {{ inventory_hostname }}
+{% endif %}

@@ -1,0 +1,180 @@
+---
+- name: Конфигурация IPv4 и IPv6
+  become: true
+  tags:
+    - ip
+  when: inventory_hostname not in ['PC_R1', 'PC_R2']
+  block:
+    - name: Удаление старых соединений, если они существуют
+      community.general.nmcli:
+        conn_name: "{{ item.conn_name }}"
+        state: absent
+      loop:
+        - { conn_name: 'Wired connection 1' }
+        - { conn_name: 'Wired connection 2' }
+      ignore_errors: yes
+
+    - name: Обновление IP-адресов и настройка новых соединений
+      community.general.nmcli:
+        conn_name: "{{ item.value.conn_name }}"
+        state: present
+        type: ethernet
+        ifname: "{{ item.key }}"
+        ip4: "{{ item.value.address }}/{{ item.value.netmask }}"
+        ip6: "{{ item.value.ipv6_address }}/{{ item.value.ipv6_prefix }}"
+      loop: "{{ servers[inventory_hostname].interfaces | dict2items }}"
+      when: inventory_hostname in servers
+
+    - name: Активировация новых соединение
+      ansible.builtin.command: nmcli connection up "{{ item.value.conn_name }}"
+      loop: "{{ servers[inventory_hostname].interfaces | dict2items }}"
+      when: inventory_hostname in servers
+
+    - name: Добавление маршрутов для R1
+      ansible.builtin.shell: |
+        nmcli connection modify "Wired connection 1" ipv4.routes "222.100.100.1/24 111.100.100.1 100"
+        nmcli connection modify "Wired connection 1" ipv6.routes "::/0 1110:A::1 100"
+      when: inventory_hostname == 'R1'
+
+    - name: Добавление маршрутов для R2
+      ansible.builtin.shell: |
+        nmcli connection modify "Wired connection 1" ipv4.routes "111.100.100.1/24 222.100.100.1 100"
+        nmcli connection modify "Wired connection 1" ipv6.routes "::/0 2220:B::1 100"
+      when: inventory_hostname == 'R2'
+
+    - name: Применение общих настроек sysctl
+      ansible.builtin.sysctl:
+        name: "{{ item.split('=')[0] }}"
+        value: "{{ item.split('=')[1] }}"
+        state: present
+      loop: "{{ servers[inventory_hostname].sysctl_settings.common }}"
+      notify: Reload sysctl
+
+    - name: Применение специфичных для хоста настроек sysctl
+      ansible.builtin.sysctl:
+        name: "{{ item.split('=')[0] }}"
+        value: "{{ item.split('=')[1] }}"
+        state: present
+      loop: "{{ servers[inventory_hostname].sysctl_settings.specific | default([]) }}"
+      notify: Reload sysctl
+
+    - name: Перезагрузка NetworkManager
+      ansible.builtin.systemd:
+        name: NetworkManager
+        state: restarted
+
+- name: "Настройка DHCP (IPv4)"
+  become: true
+  tags:
+    - dhcp4
+  when: inventory_hostname in ['PC_R1', 'PC_R2']
+  block:
+    - name: Сохранение MAC адреса IPv4
+      ansible.builtin.shell:
+        cmd: "ip a show dev ens36 | grep -oE '[0-9a-f:]{17}' | head -n 1 > /root/mac-to-{{ inventory_hostname }}.txt"
+
+    - name: Получение файлов с MAC-адресами с удаленных хостов
+      fetch:
+        src: "/root/mac-to-{{ inventory_hostname }}.txt"
+        dest: "{{ fetch_dest }}"
+        flat: true
+      vars:
+        fetch_dest: "roles/all/files/"
+
+    - name: Получение содержимого файла mac.*.txt
+      ansible.builtin.set_fact:
+        mac: "{{ lookup('file', 'files/mac-to-{{ inventory_hostname }}.txt') }}"
+
+- name: "Настройка DHCP (IPv6)"
+  become: true
+  tags:
+    - dhcp6v1
+  when: inventory_hostname in ['R1', 'R2']
+  block:
+    - name: Создание файла vars/main.yml с переменной MAC
+      ansible.builtin.template:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: root
+        group: root
+        mode: '0644'
+      loop:
+        - { src: "templates/dhcpd.conf.j2", dest: "/etc/dhcp/dhcpd.conf" }
+        - { src: "files/isc-dhcp-server", dest: "/etc/default/isc-dhcp-server" }
+        - { src: "templates/dhcpd6.conf.j2", dest: "/etc/dhcp/dhcpd6.conf" }
+        - { src: "templates/radvd.conf.j2", dest: "/etc/radvd.conf" }
+
+    - name: Перезагрузка radvd
+      ansible.builtin.systemd:
+        name: radvd.service
+        state: restarted
+
+    - name: Перезагрузка службы isc-dhcp-server
+      ansible.builtin.systemd:
+        name: isc-dhcp-server.service
+        state: restarted
+
+- name: Настройка сетевого соединения ens36
+  become: true
+  tags:
+    - resnet
+  when: inventory_hostname in ['PC_R1', 'PC_R2']
+  block:
+    - name: Удаление старых соединений, если они существуют
+      community.general.nmcli:
+        conn_name: "Wired connection 1"
+        state: absent
+      ignore_errors: yes
+
+    - name: Активировация нового соединения
+      ansible.builtin.command: nmcli connection add type ethernet con-name 'Wired connection 1'
+
+    - name: Перезапуск сетевого интерфейса ens36
+      ansible.builtin.shell: |
+        nmcli dev disconnect ens36 || true
+        nmcli dev connect ens36
+
+- name: "Настройка DHCP (IPv6)"
+  become: true
+  tags:
+    - dhcp6v2
+  when: inventory_hostname in ['R1', 'R2']
+  block:
+    - name: Сохранение DUID в файл duid
+      ansible.builtin.shell:
+        cmd: "systemctl status isc-dhcp-server.service | grep -oE 'duid [0-9a-f:]+' | awk '{print $NF}' | head -n 1 > /root/duid-{{ inventory_hostname }}.txt"
+      ignore_errors: true
+      no_log: true
+      loop: "{{ range(3) }}"
+
+    - name: Получение файла с удаленного хоста
+      ansible.builtin.fetch:
+        src: "/root/duid-{{ inventory_hostname }}.txt"
+        dest: "{{ fetch_dest }}"
+        flat: true
+      vars:
+        fetch_dest: "roles/all/files/"
+
+    - name: Добавление DUID в файл dhcpd6.conf
+      ansible.builtin.template:
+        src: "templates/dhcpd6d.conf.j2"
+        dest: "/etc/dhcp/dhcpd6.conf"
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Перезагрузка службы isc-dhcp-server
+      ansible.builtin.systemd:
+        name: isc-dhcp-server.service
+        state: restarted
+
+- name: Перезапуск сетевого интерфейса ens36
+  become: true
+  tags:
+    - ens36
+  when: inventory_hostname in ['PC_R1', 'PC_R2']
+  block:
+    - name: Перезапуск сетевого интерфейса ens36
+      ansible.builtin.shell: |
+        nmcli dev disconnect ens36 || true
+        nmcli dev connect ens36

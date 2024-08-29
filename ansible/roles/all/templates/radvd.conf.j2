@@ -1,0 +1,16 @@
+# Настройка DHCPv6
+{% if servers[inventory_hostname] is defined %}
+{% set server = servers[inventory_hostname].interfaces.ens37 %}
+interface ens37
+{
+    AdvSendAdvert on;
+    AdvManagedFlag on;
+    AdvOtherConfigFlag on;
+    prefix {{ server.radvd }}/122 {
+        AdvRouterAddr on;
+    };
+};
+
+{% else %}
+# Нет подходящих IPv6 настроек для этого интерфейса
+{% endif %}

@@ -1,0 +1,20 @@
+---
+- name: Configure Servers
+  hosts: all
+  become: yes
+  tasks:
+    - name: Include package configuration tasks
+      include_role:
+        name: all
+      tags:
+        - package
+    - name: Include network configuration tasks
+      include_role:
+        name: all
+      tags:
+        - ip
+        - dhcp4
+        - dhcp6v1
+        - resnet
+        - dhcp6v2
+        - ens36

@@ -1,0 +1,34 @@
+include:
+  - local: 'gitlab-ci/ci-templates.yml'
+
+stages:
+  - install_packages
+  - notify_packages
+
+# Шаблон для установки пакетов
+.install_package:
+  extends: .package_template
+  artifacts:
+    paths:
+      - $NOTIFY_FILES
+    expire_in: 1 hour
+
+Installing_packages:
+  extends: .install_package
+  variables:
+    SERVER_LIMIT: 'r0_server'
+    NOTIFY_FILES: 'r0_server_packages.txt'
+  tags:
+    - r0.server
+  stage: install_packages
+
+# Уведомление после установки пакетов
+notify_packages:
+  extends: .notify_template
+  variables:
+    PLAYBOOK_INDEX: "1"
+    NOTIFY_FILES: 'r0_server_packages.txt'
+    MESSAGE: "Результаты выполнения Ansible playbooks:\n1) playbook #1 выполнен успешно! (Installing apt and hostname)\n"
+  needs:
+    - Installing_packages
+  stage: notify_packages

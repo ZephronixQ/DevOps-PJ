@@ -1,0 +1,6 @@
+include:
+  - gitlab-ci/package.yml
+
+stages:
+  - install_packages
+  - notify_packages

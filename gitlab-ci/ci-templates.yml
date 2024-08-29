@@ -1,0 +1,46 @@
+# Шаблон для установки
+.templates:
+  script:
+    - ansible-playbook -i ansible/inventory/hosts ansible/all.yml --tags "$TAGS"
+    - PLAYBOOK_STATUS=$?
+    - FILENAME="${SERVER_LIMIT}_$FILE_SUFFIX"
+    - |
+      if [ $PLAYBOOK_STATUS -eq 0 ]; then
+        echo "$SERVER_LIMIT - success" > "$FILENAME"
+      else
+        echo "$SERVER_LIMIT - failed" > "$FILENAME"
+        exit 1
+      fi
+    - ls -al  # Проверка наличия созданных файлов
+    - cat "$FILENAME"  # Проверка содержимого файла
+
+# Шаблон для установки пакетов
+.package_template:
+  extends: .templates
+  variables:
+    TAGS: package
+    FILE_SUFFIX: packages.txt
+
+# Шаблон для уведомлений
+.notify_template:
+  stage: notify_ip
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache curl
+  script:
+    - echo -e "$MESSAGE"
+    - echo "Sending message to Telegram:"
+    - echo "curl -s -X POST \"https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage\" -d \"chat_id=$TELEGRAM_CHAT_ID\" -d \"text=$(echo -e "$MESSAGE")\""
+    - |
+      RESPONSE=$(curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+        -d "chat_id=$TELEGRAM_CHAT_ID" \
+        -d "text=$(echo -e "$MESSAGE")")
+      echo "Response from Telegram API: $RESPONSE"
+      if echo "$RESPONSE" | grep -q '"ok":false'; then
+        echo "Ошибка отправки сообщения. Проверьте Telegram API и токен."
+        exit 1
+      fi
+  artifacts:
+    paths:
+      - "r*.txt"
+  when: always

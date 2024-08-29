@@ -1,0 +1,14 @@
+---
+- name: Include installation tasks
+  include_tasks: package/main.yml
+  tags: package
+
+- name: Include installation tasks
+  include_tasks: network/main.yml
+  tags: 
+    - ip
+    - dhcp4
+    - dhcp6v1
+    - resnet
+    - dhcp6v2
+    - ens36
