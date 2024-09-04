@@ -1,0 +1,11 @@
+conn R1-R2-IPsec
+    left={{ left_ip }}
+    leftsubnet=172.28.14.0/24
+    right={{ right_ip }}
+    rightsubnet=172.28.14.0/24
+    authby=secret
+    keyexchange=ikev2
+    ike=aes256-sha256-modp2048
+    esp=aes256-sha256
+    auto=start
+    rightsubnet={{ right_exclude_subnet }}

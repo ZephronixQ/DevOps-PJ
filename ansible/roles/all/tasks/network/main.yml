@@ -260,3 +260,64 @@
       ansible.builtin.systemd:
         name: NetworkManager
         state: restarted
+
+    - name: Создание конфигурации для R1 (R1=left)
+      template:
+        src: ipsec.conf.j2
+        dest: /etc/ipsec.conf
+      vars:
+        left_ip: "{{ servers.R1.interfaces.ens36.address }}"
+        right_ip: "{{ servers.R2.interfaces.ens36.address }}"
+        right_exclude_subnet: "!172.28.14.251"
+      when: inventory_hostname == 'R1'
+      notify:
+        - Перезапуск StrongSwan
+
+    - name: Создание конфигурации для R2 (R2=left)
+      template:
+        src: ipsec.conf.j2
+        dest: /etc/ipsec.conf
+      vars:
+        left_ip: "{{ servers.R2.interfaces.ens36.address }}"
+        right_ip: "{{ servers.R1.interfaces.ens36.address }}"
+        right_exclude_subnet: "!172.28.14.252"
+      when: inventory_hostname == 'R2'
+      notify:
+        - Перезапуск StrongSwan
+
+    - name: Генерация PSK для R1
+      when: inventory_hostname == 'R1'
+      command: "openssl rand -base64 32"
+      register: psk_r1_output
+
+    - name: Генерация PSK для R2
+      when: inventory_hostname == 'R2'
+      command: "openssl rand -base64 32"
+      register: psk_r2_output
+
+    - name: Объединение PSK для R1 и R2 в один файл на R1
+      when: inventory_hostname == 'R1'
+      copy:
+        content: |
+          111.100.100.2 222.100.100.2 : PSK {{ psk_r1_output.stdout }}
+          222.100.100.2 111.100.100.2 : PSK {{ hostvars['R2']['psk_r2_output']['stdout'] }}
+        dest: /etc/ipsec.secrets
+        owner: root
+        group: root
+        mode: '0600'
+
+    - name: Объединение PSK для R1 и R2 в один файл на R2
+      when: inventory_hostname == 'R2'
+      copy:
+        content: |
+          222.100.100.2 111.100.100.2 : PSK {{ psk_r2_output.stdout }}
+          111.100.100.2 222.100.100.2 : PSK {{ hostvars['R1']['psk_r1_output']['stdout'] }}
+        dest: /etc/ipsec.secrets
+        owner: root
+        group: root
+        mode: '0600'
+
+    - name: Перезагрузка StrongSwan на R1 и R2
+      service:
+        name: strongswan-starter
+        state: restarted
