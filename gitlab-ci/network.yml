@@ -49,6 +49,21 @@ include:
       - $NOTIFY_FILES
     expire_in: 1 hour
 
+# Шаблон для настройки ROUTE на Client PC
+.configure_route:
+  extends: .route_template
+  artifacts:
+    paths:
+      - $NOTIFY_FILES
+    expire_in: 1 hour
+
+# Шаблон для настройки VPN и OSPF
+.configure_vpn:
+  extends: .vpn_template
+  artifacts:
+    paths:
+      - $NOTIFY_FILES
+    expire_in: 1 hour
 
 configured_ip:
   extends: .configure_ip
@@ -114,6 +129,28 @@ configured_ens36:
     - r0.server
   needs:
     - configured_dhcp6v2
+  stage: configure_ip
+
+configured_route:
+  extends: .configure_route
+  variables:
+    SERVER_LIMIT: 'r0_server'
+    NOTIFY_FILES: 'r0_server_ip.txt'
+  tags:
+    - r0.server
+  needs:
+    - configured_ens36
+  stage: configure_ip
+
+configured_vpn:
+  extends: .configure_vpn
+  variables:
+    SERVER_LIMIT: 'r0_server'
+    NOTIFY_FILES: 'r0_server_ip.txt'
+  tags:
+    - r0.server
+  needs:
+    - configured_route
   stage: configure_ip
 
 # Уведомление после конфигурирования сети

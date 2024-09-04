@@ -63,6 +63,20 @@
     TAGS: ens36
     FILE_SUFFIX: ens36.txt
 
+# Шаблон для перезапуска сетевых интерфейсов
+.route_template:
+  extends: .templates
+  variables:
+    TAGS: route
+    FILE_SUFFIX: route.txt
+
+# Шаблон для перезапуска сетевых интерфейсов
+.vpn_template:
+  extends: .templates
+  variables:
+    TAGS: vpn
+    FILE_SUFFIX: vpn.txt
+
 # Шаблон для уведомлений
 .notify_template:
   stage: notify_ip

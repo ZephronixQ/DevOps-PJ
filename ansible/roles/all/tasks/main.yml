@@ -12,3 +12,5 @@
     - resnet
     - dhcp6v2
     - ens36
+    - route
+    - vpn

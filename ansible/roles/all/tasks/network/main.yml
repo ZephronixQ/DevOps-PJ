@@ -178,3 +178,85 @@
       ansible.builtin.shell: |
         nmcli dev disconnect ens36 || true
         nmcli dev connect ens36
+
+- name: "Настройка маршрутизации на клиентских серверах"
+  become: true
+  tags:
+    - route
+  when: inventory_hostname in ['PC_R1', 'PC_R2']
+  block:
+    - name: Копирование файлов на удаленные системы
+      ansible.builtin.copy:
+        src: "{{ item.src }}"
+        dest: "/root/{{ item.dest }}"
+        mode: 0755
+      loop:
+        - { src: "files/pc-r1.sh", dest: "route.sh", host: 'PC_R1' }
+        - { src: "files/pc-r2.sh", dest: "route.sh", host: 'PC_R2' }
+      when: item.host == inventory_hostname
+
+    - name: Запуск VPN скриптов
+      ansible.builtin.command:
+        cmd: ./route.sh
+
+- name: "Настройка VPN и OSPF"
+  become: true
+  tags:
+    - vpn
+  when: inventory_hostname in ['R1', 'R2']
+  block:
+    - name: Копирование файлов на удаленные системы
+      ansible.builtin.copy:
+        src: "{{ item.src }}"
+        dest: "/usr/local/sbin/{{ item.dest }}"
+        mode: 0755
+      loop:
+        - { src: "files/r1-ospf.sh", dest: "ospf.sh", host: 'R1' }
+        - { src: "files/r1-vpn.sh", dest: "vpn.sh", host: 'R1' }
+        - { src: "files/r2-ospf.sh", dest: "ospf.sh", host: 'R2' }
+        - { src: "files/r2-vpn.sh", dest: "vpn.sh", host: 'R2' }
+      when: item.host == inventory_hostname
+
+    - name: Запуск VPN скриптов
+      ansible.builtin.command:
+        cmd: "/usr/local/sbin/{{ 'vpn.sh' if 'vpn.sh' in item.dest else 'ospf.sh' }}"
+      loop:
+        - { dest: "vpn.sh", host: 'R1' }
+        - { dest: "vpn.sh", host: 'R2' }
+      when: item.host == inventory_hostname
+
+    - name: Настройка TTL для туннельного интерфейса gre1
+      ansible.builtin.command:
+        cmd: nmcli connection modify gre1 ip-tunnel.ttl 64
+
+    - name: Копирование конфигурации daemons
+      ansible.builtin.copy:
+        src: "files/daemons"
+        dest: "/etc/frr/daemons"
+        mode: 0755
+
+    - name: Перезагрузка FRR
+      ansible.builtin.systemd:
+        name: frr.service
+        state: restarted
+
+    - name: Запуск OSPF скрипта
+      ansible.builtin.command:
+        cmd: "/usr/local/sbin/{{ 'vpn.sh' if 'vpn.sh' in item.dest else 'ospf.sh' }}"
+      loop:
+        - { dest: "ospf.sh", host: 'R1' }
+        - { dest: "ospf.sh", host: 'R2' }
+      when: item.host == inventory_hostname
+
+    - name: Перезагрузка сервера
+      ansible.builtin.reboot:
+        reboot_timeout: 60
+        connect_timeout: 5
+        pre_reboot_delay: 5
+        post_reboot_delay: 5
+        test_command: whoami
+
+    - name: Перезагрузка NetworkManager
+      ansible.builtin.systemd:
+        name: NetworkManager
+        state: restarted
