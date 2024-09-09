@@ -57,13 +57,6 @@
     FILE_SUFFIX: dhcp6v2.txt
 
 # Шаблон для перезапуска сетевых интерфейсов
-.ens36_template:
-  extends: .templates
-  variables:
-    TAGS: ens36
-    FILE_SUFFIX: ens36.txt
-
-# Шаблон для перезапуска сетевых интерфейсов
 .route_template:
   extends: .templates
   variables:

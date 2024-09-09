@@ -73,17 +73,11 @@
       ansible.builtin.shell:
         cmd: "ip a show dev ens36 | grep -oE '[0-9a-f:]{17}' | head -n 1 > /root/mac-to-{{ inventory_hostname }}.txt"
 
-    - name: Получение файлов с MAC-адресами с удаленных хостов
-      fetch:
+    - name: Копирование файла с удаленного узла
+      ansible.builtin.fetch:
         src: "/root/mac-to-{{ inventory_hostname }}.txt"
-        dest: "{{ fetch_dest }}"
+        dest: "roles/all/files/"
         flat: true
-      vars:
-        fetch_dest: "roles/all/files/"
-
-    - name: Получение содержимого файла mac.*.txt
-      ansible.builtin.set_fact:
-        mac: "{{ lookup('file', 'files/mac-to-{{ inventory_hostname }}.txt') }}"
 
 - name: "Настройка DHCP (IPv6)"
   become: true
@@ -120,15 +114,6 @@
     - resnet
   when: inventory_hostname in ['PC_R1', 'PC_R2']
   block:
-    - name: Удаление старых соединений, если они существуют
-      community.general.nmcli:
-        conn_name: "Wired connection 1"
-        state: absent
-      ignore_errors: yes
-
-    - name: Активировация нового соединения
-      ansible.builtin.command: nmcli connection add type ethernet con-name 'Wired connection 1'
-
     - name: Перезапуск сетевого интерфейса ens36
       ansible.builtin.shell: |
         nmcli dev disconnect ens36 || true
@@ -145,7 +130,7 @@
         cmd: "systemctl status isc-dhcp-server.service | grep -oE 'duid [0-9a-f:]+' | awk '{print $NF}' | head -n 1 > /root/duid-{{ inventory_hostname }}.txt"
       ignore_errors: true
       no_log: true
-      loop: "{{ range(3) }}"
+      loop: "{{ range(7) }}"
 
     - name: Получение файла с удаленного хоста
       ansible.builtin.fetch:
@@ -167,17 +152,6 @@
       ansible.builtin.systemd:
         name: isc-dhcp-server.service
         state: restarted
-
-- name: Перезапуск сетевого интерфейса ens36
-  become: true
-  tags:
-    - ens36
-  when: inventory_hostname in ['PC_R1', 'PC_R2']
-  block:
-    - name: Перезапуск сетевого интерфейса ens36
-      ansible.builtin.shell: |
-        nmcli dev disconnect ens36 || true
-        nmcli dev connect ens36
 
 - name: "Настройка маршрутизации на клиентских серверах"
   become: true

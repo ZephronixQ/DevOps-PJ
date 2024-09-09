@@ -41,14 +41,6 @@ include:
       - $NOTIFY_FILES
     expire_in: 1 hour
 
-# Шаблон для перезапуска сетевых интерфейсов
-.configure_ens36:
-  extends: .ens36_template
-  artifacts:
-    paths:
-      - $NOTIFY_FILES
-    expire_in: 1 hour
-
 # Шаблон для настройки ROUTE на Client PC
 .configure_route:
   extends: .route_template
@@ -120,17 +112,6 @@ configured_dhcp6v2:
     - configured_resnet
   stage: configure_ip
 
-configured_ens36:
-  extends: .configure_ens36
-  variables:
-    SERVER_LIMIT: 'r0_server'
-    NOTIFY_FILES: 'r0_server_ip.txt'
-  tags:
-    - r0.server
-  needs:
-    - configured_dhcp6v2
-  stage: configure_ip
-
 configured_route:
   extends: .configure_route
   variables:
@@ -139,7 +120,7 @@ configured_route:
   tags:
     - r0.server
   needs:
-    - configured_ens36
+    - configured_dhcp6v2
   stage: configure_ip
 
 configured_vpn:
