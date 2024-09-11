@@ -57,6 +57,30 @@ include:
       - $NOTIFY_FILES
     expire_in: 1 hour
 
+# Шаблон для настройки DNS
+.configure_dns:
+  extends: .dns_template
+  artifacts:
+    paths:
+      - $NOTIFY_FILES
+    expire_in: 1 hour
+
+# Шаблон для настройки DNS
+.configure_work0:
+  extends: .work0_template
+  artifacts:
+    paths:
+      - $NOTIFY_FILES
+    expire_in: 1 hour
+
+# Шаблон для настройки DNS
+.configure_work1:
+  extends: .work1_template
+  artifacts:
+    paths:
+      - $NOTIFY_FILES
+    expire_in: 1 hour
+
 configured_ip:
   extends: .configure_ip
   variables:
@@ -134,13 +158,46 @@ configured_vpn:
     - configured_route
   stage: configure_ip
 
+configured_dns:
+  extends: .configure_dns
+  variables:
+    SERVER_LIMIT: 'r0_server'
+    NOTIFY_FILES: 'r0_server_ip.txt'
+  tags:
+    - r0.server
+  needs:
+    - configured_vpn
+  stage: configure_ip
+
+configured_work0:
+  extends: .configure_work0
+  variables:
+    SERVER_LIMIT: 'r0_server'
+    NOTIFY_FILES: 'r0_server_ip.txt'
+  tags:
+    - r0.server
+  needs:
+    - configured_dns
+  stage: configure_ip
+
+configured_work1:
+  extends: .configure_work1
+  variables:
+    SERVER_LIMIT: 'r0_server'
+    NOTIFY_FILES: 'r0_server_ip.txt'
+  tags:
+    - r0.server
+  needs:
+    - configured_work0
+  stage: configure_ip
+
 # Уведомление после конфигурирования сети
 notify_ip:
   extends: .notify_template
   variables:
     PLAYBOOK_INDEX: "1"
     NOTIFY_FILES: 'r0_server_packages.txt'
-    MESSAGE: "Результаты выполнения Ansible playbooks:\n1) playbook #2 выполнен успешно! (IPv4, IPv6, DHCPv4, DHCPv6, Routing)\n"
+    MESSAGE: "Результаты выполнения Ansible playbooks:\n1) playbook #2 выполнен успешно! \nНастроено: \n - IPv4 \n - IPv6 \n - DHCPv4 \n - DHCPv6 \n - Routing \n - VPN \n - OSPF \n - DNS\n"
   needs:
-    - configured_ens36
+    - configured_work1
   stage: notify_ip

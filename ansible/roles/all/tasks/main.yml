@@ -13,5 +13,6 @@
     - dhcp6v2
     - route
     - vpn
-    - dns-server
     - dns
+    - work-r0
+    - work-r1

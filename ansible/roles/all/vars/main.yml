@@ -38,6 +38,7 @@ servers:
       range_start: "100.100.100.2"
       range_end: "100.100.100.61"
       router: "100.100.100.1"
+      domain: "100.100.100.2"
       hosts:
         PC-R1:
           mac: "{{ lookup('file', 'files/mac-to-PC_R1.txt') }}"
@@ -46,6 +47,7 @@ servers:
       subnet6: "10:100:C::/122"
       range6_start: "10:100:C::2"
       range6_end: "10:100:C::3e"
+      domain6: "10:100:c::3"
       hosts:
         PC-R1:
           duid: "{{ lookup('file', 'files/duid-R1.txt') }}"
@@ -110,6 +112,7 @@ servers:
       range_start: "200.200.200.2"
       range_end: "200.200.200.11"
       router: "200.200.200.1"
+      domain: "100.100.100.2"
       hosts:
         PC-R2:
           mac: "{{ lookup('file', 'files/mac-to-PC_R2.txt') }}"
@@ -118,6 +121,7 @@ servers:
       subnet6: "20:200:C::/122"
       range6_start: "20:200:C::2"
       range6_end: "20:200:C::3e"
+      domain6: "10:100:c::3"
       hosts:
         PC-R2:
           duid: "{{ lookup('file', 'files/duid-R1.txt') }}"

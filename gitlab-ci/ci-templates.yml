@@ -11,8 +11,8 @@
         echo "$SERVER_LIMIT - failed" > "$FILENAME"
         exit 1
       fi
-    - ls -al  # Проверка наличия созданных файлов
-    - cat "$FILENAME"  # Проверка содержимого файла
+    - ls -al
+    - cat "$FILENAME"
 
 # Шаблон для установки пакетов
 .package_template:
@@ -56,19 +56,40 @@
     TAGS: dhcp6v2
     FILE_SUFFIX: dhcp6v2.txt
 
-# Шаблон для перезапуска сетевых интерфейсов
+# Шаблон для настройки роутинга
 .route_template:
   extends: .templates
   variables:
     TAGS: route
     FILE_SUFFIX: route.txt
 
-# Шаблон для перезапуска сетевых интерфейсов
+# Шаблон для настройки VPN сервера
 .vpn_template:
   extends: .templates
   variables:
     TAGS: vpn
     FILE_SUFFIX: vpn.txt
+
+# Шаблон для настройки DNS сервера
+.dns_template:
+  extends: .templates
+  variables:
+    TAGS: dns
+    FILE_SUFFIX: dns.txt
+
+# Шаблон для работы с файлами на сервере R0
+.work0_template:
+  extends: .templates
+  variables:
+    TAGS: work-r0
+    FILE_SUFFIX: work0.txt
+
+# Шаблон для работы с файлами на сервере R1
+.work1_template:
+  extends: .templates
+  variables:
+    TAGS: work-r1
+    FILE_SUFFIX: work1.txt
 
 # Шаблон для уведомлений
 .notify_template:

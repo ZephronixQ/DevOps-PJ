@@ -295,3 +295,96 @@
       service:
         name: strongswan-starter
         state: restarted
+
+- name: "Настройка DNS на сервере PC-R1"
+  become: true
+  tags:
+    - dns
+  when: inventory_hostname == 'PC_R1'
+  block:
+    - name: Перемещение файла на удаленный хост
+      ansible.builtin.copy:
+        src: "resolv.conf"
+        dest: "/etc/resolv.conf"
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Перемещение файлов на удаленный хост
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: "/etc/bind/"
+        owner: root
+        group: root
+        mode: '0644'
+      loop:
+        - "db.r1.work"
+        - "db.r2.work"
+        - "named.conf.local"
+        - "named.conf.options"
+
+    - name: Проверка изменений named конфигурации
+      ansible.builtin.shell:
+        cmd: named-checkconf -z
+
+    - name: Перезагрузка named
+      ansible.builtin.systemd:
+        name: named.service
+        state: restarted
+
+    - name: Проверка DNS-записей и запись в файл
+      shell: |
+        host r1.work > /root/dns_check_results.txt
+        host 100.100.100.2 >> /root/dns_check_results.txt
+        host 10:100:c::3 >> /root/dns_check_results.txt 2>&1
+        host r2.work >> /root/dns_check_results.txt
+        host 200.200.200.2 >> /root/dns_check_results.txt
+        host 20:200:c::3 >> /root/dns_check_results.txt 2>&1
+
+- name: "Работа с файлами на сервере R0"
+  when: inventory_hostname == 'R0'
+  tags:
+    - work-r0
+  block:
+    - name: Найти каталог, соответствующий шаблону
+      ansible.builtin.shell:
+        cmd: "ls -d /root/builds/*/*/*/DevOps-PJ/ansible/roles/all/files"
+      register: found_directories
+
+    - name: Сохранение пути назначения в файл
+      ansible.builtin.copy:
+        content: "{{ found_directories.stdout }}"
+        dest: "/root/destination_path.txt"
+      when:
+        - found_directories.stdout is defined
+        - found_directories.stdout != ""
+    
+    - name: Передача файла пути назначения в PC_R1
+      delegate_to: PC_R1
+      ansible.builtin.copy:
+        src: "/root/destination_path.txt"
+        dest: "/root/destination_path.txt"
+
+- name: "Работа с файлами на сервере PC_R1"
+  when: inventory_hostname == 'PC_R1'
+  tags:
+    - work-r1
+  block:
+    - name: Получение пути назначения из файла
+      ansible.builtin.slurp:
+        src: "/root/destination_path.txt"
+      register: destination_path_content
+
+    - name: Установика переменной пути назначения 
+      set_fact:
+        destination_path: "{{ destination_path_content['content'] | b64decode }}"
+      when:
+        - destination_path_content is defined
+
+    - name: Получение файла с удаленного узла
+      ansible.builtin.fetch:
+        src: "/root/dns_check_results.txt"
+        dest: "{{ destination_path }}/"
+        flat: true
+      when:
+        - destination_path is defined

@@ -18,6 +18,7 @@ option dhcp6.info-refresh-time 21600;
 
 subnet6 {{ server.subnet6 }} {
     range6 {{ server.range6_start }} {{ server.range6_end }};
+    option dhcp6.name-servers {{ server.domain6 }};
 }
 
 {% if server.hosts is defined %}

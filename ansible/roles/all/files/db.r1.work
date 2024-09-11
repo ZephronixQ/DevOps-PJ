@@ -1,0 +1,22 @@
+;
+; BIND data file for r1.work
+;
+$TTL    604800
+@       IN      SOA     r1.work  root.r1.work. (
+                              2         ; Serial
+                         604800         ; Refresh
+                          86400         ; Retry
+                        2419200         ; Expire
+                         604800 )       ; Negative Cache TTL
+;
+@       IN      NS      r1.work.
+@       IN      A       100.100.100.2
+@       IN      AAAA    10:100:C::3
+2       IN      PTR     r1-srv.r1.work
+1       IN      PTR     r1-r.r1.work
+3.0     IN      PTR     r1-srv.r1.work
+1.0     IN      PTR     r1-r.r1.work
+r1-r            A       100.100.100.1
+r1-r            AAAA    10:100:C::1
+r1-srv          A       100.100.100.2
+r1-srv          AAAA    10:100:C::3

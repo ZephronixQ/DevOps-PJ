@@ -11,6 +11,7 @@ authoritative;
 subnet {{ server.subnet }} netmask {{ server.netmask }} {
     range {{ server.range_start }} {{ server.range_end }};
     option routers {{ server.router }};
+    option domain-name-servers {{ server.domain }};
 }
 
 {% if server.hosts is defined %}
