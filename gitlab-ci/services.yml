@@ -39,7 +39,7 @@ configured_ntp:
   stage: configure_services
 
 configured_nfs:
-  extends: .configure_ntp
+  extends: .configure_nfs
   variables:
     SERVER_LIMIT: 'r0_server'
     NOTIFY_FILES: 'r0_server_nfs.txt'
@@ -50,7 +50,7 @@ configured_nfs:
   stage: configure_services
 
 configured_cups:
-  extends: .configure_ntp
+  extends: .configure_cups
   variables:
     SERVER_LIMIT: 'r0_server'
     NOTIFY_FILES: 'r0_server_cups.txt'
