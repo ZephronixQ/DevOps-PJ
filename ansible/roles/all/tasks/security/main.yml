@@ -1,13 +1,129 @@
 ---
-- name: Configure Security
-  hosts: all
-  become: yes
-  tasks:
-    - name: Include VPN configuration
-      include_tasks: configure_vpn.yml
+- name: "Настройка Firewalld"
+  become: true
+  tags:
+    - firewalld
+  when: inventory_hostname in ['R1', 'PC_R1']
+  block:
+    - name: Включение firewalld
+      ansible.builtin.systemd:
+        name: firewalld
+        state: started
+        enabled: yes
 
-    - name: Include SSH configuration
-      include_tasks: configure_ssh.yml
+    - name: Добавление портов в firewalld
+      ansible.builtin.shell: |
+        firewall-cmd --permanent --add-port=22/tcp
+        firewall-cmd --permanent --add-port=80/tcp
+        firewall-cmd --permanent --add-port=443/tcp
+        firewall-cmd --permanent --add-port=5432/tcp
+        firewall-cmd --permanent --add-port=3306/tcp
+        firewall-cmd --permanent --add-port=6379/tcp
+        firewall-cmd --permanent --add-port=27017/tcp
+        firewall-cmd --permanent --add-port=8000/tcp
+        firewall-cmd --permanent --add-port=3000/tcp
+        firewall-cmd --permanent --add-port=4200/tcp
+        firewall-cmd --permanent --add-port=8080/tcp
+        firewall-cmd --permanent --add-port=3310/tcp
+        firewall-cmd --permanent --add-port=3311/tcp
+        firewall-cmd --permanent --add-port=3311/udp
 
-    - name: Include firewall configuration
-      include_tasks: configure_firewall.yml
+    - name: Добавление служб в firewalld
+      ansible.builtin.shell: |
+        firewall-cmd --permanent --add-service=ntp
+        firewall-cmd --permanent --add-service=ftp
+        firewall-cmd --permanent --add-service=imap
+        firewall-cmd --permanent --add-service=smtp
+        firewall-cmd --permanent --add-service=ipp
+        firewall-cmd --permanent --add-service=openvpn
+
+    - name: Добавление пользовательского сервиса OSPF в firewalld
+      ansible.builtin.shell: |
+        firewall-cmd --permanent --new-service=ospf
+        firewall-cmd --permanent --service=ospf --set-short="OSPF"
+        firewall-cmd --permanent --service=ospf --set-description="Open Shortest Path First (OSPF)"
+        firewall-cmd --permanent --service=ospf --add-port=179/tcp
+        firewall-cmd --permanent --service=ospf --add-port=179/udp
+
+    - name: Настройка маскарадинга для исходящего трафика
+      ansible.builtin.shell: |
+        firewall-cmd --permanent --add-masquerade
+
+    - name: Применение изменений конфигурации firewalld
+      ansible.builtin.shell: firewall-cmd --reload
+
+    - name: Сохранение временной конфигурации firewalld и перезагрузка
+      ansible.builtin.shell: |
+        firewall-cmd --runtime-to-permanent
+        systemctl restart firewalld
+
+- name: "Настройка Iptables"
+  become: true
+  tags:
+    - iptables
+  when: inventory_hostname in ['R1', 'PC_R1']
+  block:
+    - name: Блокировка порта 23 TCP с помощью iptables
+      ansible.builtin.shell: iptables -A INPUT -p tcp --dport 23 -j DROP
+
+    - name: Разрешение входящих пакетов по SSH
+      ansible.builtin.shell: iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+
+    - name: Разрешение входящих пакетов с определенных IP-адресов
+      ansible.builtin.shell: |
+        iptables -A INPUT -s 111.100.100.1 -j ACCEPT
+        iptables -A INPUT -s 111.100.100.2 -j ACCEPT
+        iptables -A INPUT -s 100.100.100.1 -j ACCEPT
+        iptables -A INPUT -s 100.100.100.2 -j ACCEPT
+        iptables -A INPUT -s 222.100.100.1 -j ACCEPT
+        iptables -A INPUT -s 222.100.100.2 -j ACCEPT
+        iptables -A INPUT -s 200.200.200.1 -j ACCEPT
+        iptables -A INPUT -s 200.200.200.2 -j ACCEPT
+
+    - name: Разрешить доступ к VPN-серверу только с определенных IP-адресов
+      ansible.builtin.shell: |
+        iptables -A INPUT -p gre -s 100.100.100.2 -j ACCEPT
+        iptables -A INPUT -p gre -s 200.200.200.2 -j ACCEPT
+        iptables -A INPUT -p gre -s 10.0.0.1 -j ACCEPT
+
+    - name: Заблокировать доступ к VPN-серверу с остальных IP-адресов
+      ansible.builtin.shell: iptables -A INPUT -p gre -j DROP
+
+    - name: Разрешить перенаправление пакетов между интерфейсами
+      ansible.builtin.shell: iptables -A FORWARD -j ACCEPT
+
+    - name: Сохранение правил iptables
+      ansible.builtin.shell: iptables-save > /etc/iptables/rules.v4
+
+- name: "Настройка сетевых правил"
+  become: true
+  tags:
+    - netsec
+  when: inventory_hostname in ['R1', 'PC_R1']
+  block:
+    - name: Логирование TCP-трафика с помощью firewalld
+      ansible.builtin.shell: |
+        firewall-cmd --zone=public --add-rich-rule='rule family="ipv4" protocol value="tcp" log prefix="TCP_IN: " level="info"' --permanent
+
+    - name: Создание зоны для внутренних сетей
+      ansible.builtin.shell: firewall-cmd --permanent --new-zone=internal_zone
+
+    - name: Назначение интерфейса для зоны внутренних сетей
+      ansible.builtin.shell: firewall-cmd --permanent --zone=internal_zone --add-interface=ens33
+
+    - name: Добавление правил для доступа по SSH через интерфейс ens33
+      ansible.builtin.shell: firewall-cmd --permanent --zone=internal_zone --add-port=22/tcp
+
+    - name: Включение NAT для зоны внутренних сетей
+      ansible.builtin.shell: firewall-cmd --permanent --zone=internal_zone --add-masquerade
+
+    - name: Применение изменений конфигурации firewalld
+      ansible.builtin.shell: firewall-cmd --reload
+
+    - name: Сохранение временной конфигурации firewalld
+      ansible.builtin.shell: firewall-cmd --runtime-to-permanent
+
+    - name: Перезагрузка firewalld
+      ansible.builtin.systemd:
+        name: firewalld
+        state: restarted

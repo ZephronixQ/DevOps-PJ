@@ -5,7 +5,7 @@ stages:
   - configure_services
   - notify_services
 
-# Шаблон для установки NTP
+# Шаблон для настройки NTP
 .configure_ntp:
   extends: .ntp_template
   artifacts:
@@ -13,7 +13,7 @@ stages:
       - $NOTIFY_FILES
     expire_in: 1 hour
 
-# Шаблон для установки NTP
+# Шаблон для настройки NFS
 .configure_nfs:
   extends: .nfs_template
   artifacts:
@@ -21,7 +21,7 @@ stages:
       - $NOTIFY_FILES
     expire_in: 1 hour
 
-# Шаблон для установки NTP
+# Шаблон для настройки CUPS
 .configure_cups:
   extends: .cups_template
   artifacts:

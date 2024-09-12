@@ -23,3 +23,10 @@
     - ntp
     - nfs
     - cups
+
+- name: Include security tasks
+  include_tasks: security/main.yml
+  tags:
+    - firewalld
+    - iptables
+    - netsec

@@ -1,7 +1,72 @@
-stages:
-  - 
+include:
+  - local: 'gitlab-ci/ci-templates.yml'
 
-deploy:
-  stage: 
-  script:
-    - ansible-playbook -i inventory/hosts.ini all.yml
+stages:
+  - configure_security
+  - notify_security
+
+# Шаблон для настройки Firewalld
+.configure_firewalld:
+  extends: .firewalld_template
+  artifacts:
+    paths:
+      - $NOTIFY_FILES
+    expire_in: 1 hour
+
+# Шаблон для настройки Iptables
+.configure_iptables:
+  extends: .iptables_template
+  artifacts:
+    paths:
+      - $NOTIFY_FILES
+    expire_in: 1 hour
+
+# Шаблон для настройки NetSec
+.configure_netsec:
+  extends: .netsec_template
+  artifacts:
+    paths:
+      - $NOTIFY_FILES
+    expire_in: 1 hour
+
+configured_firewalld:
+  extends: .configure_firewalld
+  variables:
+    SERVER_LIMIT: 'r0_server'
+    NOTIFY_FILES: 'r0_server_firewalld.txt'
+  tags:
+    - r0.server
+  stage: configure_security
+
+configured_iptables:
+  extends: .configure_iptables
+  variables:
+    SERVER_LIMIT: 'r0_server'
+    NOTIFY_FILES: 'r0_server_iptables.txt'
+  tags:
+    - r0.server
+  needs:
+    - configured_firewalld
+  stage: configure_security
+
+configured_netsec:
+  extends: .configure_netsec
+  variables:
+    SERVER_LIMIT: 'r0_server'
+    NOTIFY_FILES: 'r0_server_netsec.txt'
+  tags:
+    - r0.server
+  needs:
+    - configured_iptables
+  stage: configure_security
+
+# Уведомление после настройки сервисов
+notify_services:
+  extends: .notify_template
+  variables:
+    PLAYBOOK_INDEX: "1"
+    NOTIFY_FILES: 'r0_server_netsec.txt'
+    MESSAGE: "Результаты выполнения Ansible playbooks:\nPlaybook #4 выполнен успешно! \nНастроено: \n - Firewalld\n - Iptables\n - NetSec\n"
+  needs:
+    - configured_netsec
+  stage: notify_security

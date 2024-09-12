@@ -155,5 +155,24 @@
 #                                                  SECURITIES                                                        #
 ######################################################################################################################
 
+# Шаблон для настройки Firewalld
+.firewalld_template:
+  extends: .templates
+  variables:
+    TAGS: firewalld
+    FILE_SUFFIX: firewalld.txt
 
+# Шаблон для настройки Iptables
+.iptables_template:
+  extends: .templates
+  variables:
+    TAGS: iptables
+    FILE_SUFFIX: iptables.txt
+
+# Шаблон для настройки NetSec
+.netsec_template:
+  extends: .templates
+  variables:
+    TAGS: netsec
+    FILE_SUFFIX: netsec.txt
 

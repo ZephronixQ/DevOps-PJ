@@ -29,3 +29,10 @@
         - ntp
         - nfs
         - cups
+    - name: Include security configuration tasks
+      include_role:
+        name: all
+      tags:
+        - firewalld
+        - iptables
+        - netsec
