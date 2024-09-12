@@ -3,9 +3,9 @@
   include_tasks: package/main.yml
   tags: package
 
-- name: Include installation tasks
+- name: Include network tasks
   include_tasks: network/main.yml
-  tags: 
+  tags:
     - ip
     - dhcp4
     - dhcp6v1
@@ -16,3 +16,8 @@
     - dns
     - work-r0
     - work-r1
+
+- name: Include services tasks
+  include_tasks: services/main.yml
+  tags:
+    - ntp

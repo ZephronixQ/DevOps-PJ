@@ -11,7 +11,7 @@
     │   │   └── main.yml
     │   ├── tasks
     │   │   ├── configure_dhcp.yml
-    │   │   ├── configure_ip.yml
+    │   │   ├── configure_network.yml
     │   │   ├── configure_routing.yml
     │   │   ├── main.yml
     │   │   └── package_installation.yml

@@ -22,3 +22,8 @@
         - dns
         - work-r0
         - work-r1
+    - name: Include services configuration tasks
+      include_role:
+        name: all
+      tags:
+        - ntp

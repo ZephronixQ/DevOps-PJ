@@ -1,0 +1,15 @@
+local stratum 5
+manual
+allow
+
+confdir /etc/chrony/conf.d
+
+driftfile /var/lib/chrony/chrony.drift
+
+ntsdumpdir /var/lib/chrony
+
+log tracking measurements statistics
+
+logdir /var/log/chrony
+
+makestep 10 30

@@ -1,3 +1,7 @@
+######################################################################################################################
+#                                                 TEMPLATES                                                          #
+######################################################################################################################
+
 # Шаблон для установки
 .templates:
   script:
@@ -14,12 +18,43 @@
     - ls -al
     - cat "$FILENAME"
 
+# Шаблон для уведомлений
+.notify_template:
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache curl
+  script:
+    - echo -e "$MESSAGE"
+    - echo "Sending message to Telegram:"
+    - echo "curl -s -X POST \"https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage\" -d \"chat_id=$TELEGRAM_CHAT_ID\" -d \"text=$(echo -e "$MESSAGE")\""
+    - |
+      RESPONSE=$(curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+        -d "chat_id=$TELEGRAM_CHAT_ID" \
+        -d "text=$(echo -e "$MESSAGE")")
+      echo "Response from Telegram API: $RESPONSE"
+      if echo "$RESPONSE" | grep -q '"ok":false'; then
+        echo "Ошибка отправки сообщения. Проверьте Telegram API и токен."
+        exit 1
+      fi
+  artifacts:
+    paths:
+      - "r*.txt"
+  when: always
+
+######################################################################################################################
+#                                                  PACKAGES                                                          #
+######################################################################################################################
+
 # Шаблон для установки пакетов
 .package_template:
   extends: .templates
   variables:
     TAGS: package
     FILE_SUFFIX: packages.txt
+
+######################################################################################################################
+#                                                  NETWORKS                                                          #
+######################################################################################################################
 
 # Шаблон для установки IP
 .ip_template:
@@ -91,27 +126,20 @@
     TAGS: work-r1
     FILE_SUFFIX: work1.txt
 
-# Шаблон для уведомлений
-.notify_template:
-  stage: notify_ip
-  image: alpine:latest
-  before_script:
-    - apk add --no-cache curl
-  script:
-    - echo -e "$MESSAGE"
-    - echo "Sending message to Telegram:"
-    - echo "curl -s -X POST \"https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage\" -d \"chat_id=$TELEGRAM_CHAT_ID\" -d \"text=$(echo -e "$MESSAGE")\""
-    - |
-      RESPONSE=$(curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
-        -d "chat_id=$TELEGRAM_CHAT_ID" \
-        -d "text=$(echo -e "$MESSAGE")")
-      echo "Response from Telegram API: $RESPONSE"
-      if echo "$RESPONSE" | grep -q '"ok":false'; then
-        echo "Ошибка отправки сообщения. Проверьте Telegram API и токен."
-        exit 1
-      fi
-  artifacts:
-    paths:
-      - "r*.txt"
-  when: always
+######################################################################################################################
+#                                                  SERVICES                                                          #
+######################################################################################################################
+
+# Шаблон для настройки NTP
+.ntp_template:
+  extends: .templates
+  variables:
+    TAGS: ntp
+    FILE_SUFFIX: ntp.txt
+
+######################################################################################################################
+#                                                  SECURITIES                                                        #
+######################################################################################################################
+
+
 

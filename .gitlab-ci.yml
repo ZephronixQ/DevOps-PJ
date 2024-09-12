@@ -1,12 +1,13 @@
 include:
   - gitlab-ci/package.yml
   - gitlab-ci/network.yml
+  - gitlab-ci/services.yml
   # - gitlab-ci/security.yml
-  # - gitlab-ci/services.yml
-  # - gitlab-ci/system_management.yml
 
 stages:
   - install_packages
   - notify_packages
-  - configure_ip
-  - notify_ip
+  - configure_network
+  - notify_network
+  - configure_services
+  - notify_services

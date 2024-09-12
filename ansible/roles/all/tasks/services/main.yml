@@ -1,20 +1,39 @@
 ---
-- name: Configure Security
-  hosts: all
-  become: yes
-  tasks:
-    - name: Configure DNS
-      include_tasks: configure_dns.yml
+- name: "Настройка NTP"
+  become: true
+  tags:
+    - ntp
+  when: inventory_hostname in ['R1', 'PC_R1']
+  block:
+    - name: Создание Dummy0 на сервере R1
+      ansible.builtin.shell: |
+        nmcli connection add type dummy ifname dummy0 con-name dummy0
+        nmcli connection modify dummy0 ipv4.method manual ipv4.addresses 10.0.0.1/24
+        nmcli connection modify dummy0 ipv6.method manual ipv6.addresses 10:0:0:1::a/64
+        nmcli connection up dummy0
+      when: inventory_hostname == 'R1'
 
-    - name: Configure NTP
-      include_tasks: configure_ntp.yml
+    - name: Копирование файлов на удаленные системы
+      ansible.builtin.copy:
+        src: "{{ item.src }}"
+        dest: "/etc/chrony/chrony.conf"
+        mode: 0644
+      loop:
+        - { src: "files/chrony.conf-server", host: 'R1' }
+        - { src: "files/chrony.conf-client", host: 'PC_R1' }
+      when: item.host == inventory_hostname
 
-    - name: Configure NFS
-      include_tasks: configure_nfs.yml
+    - name: Получение IP-адреса для интерфейса ens33
+      ansible.builtin.shell:
+        cmd: ip route | grep '^default' | awk '{print $3}' | grep '^172' || true
+      register: ip_address
+      changed_when: false
 
-    - name: Configure CUPS
-      include_tasks: configure_cups.yml
+    - name: Удаление маршрута по умолчанию
+      ansible.builtin.command:
+        cmd: ip route del default via {{ ip_address.stdout }} dev ens33
+      when: ip_address.stdout != ''
 
-    - name: Configure Mail Server
-      include_tasks: configure_mail_server.yml
-
+    - name: 
+      ansible.builtin.shell:
+        cmd: "timedatectl set-timezone Europe/Moscow && systemctl restart chrony"

@@ -1,7 +1,34 @@
-stages:
-  - 
+include:
+  - local: 'gitlab-ci/ci-templates.yml'
 
-deploy:
-  stage: 
-  script:
-    - ansible-playbook -i inventory/hosts.ini all.yml
+stages:
+  - configure_services
+  - notify_services
+
+# Шаблон для установки NTP
+.configure_ntp:
+  extends: .ntp_template
+  artifacts:
+    paths:
+      - $NOTIFY_FILES
+    expire_in: 1 hour
+
+configured_ntp:
+  extends: .configure_ntp
+  variables:
+    SERVER_LIMIT: 'r0_server'
+    NOTIFY_FILES: 'r0_server_ntp.txt'
+  tags:
+    - r0.server
+  stage: configure_services
+
+# Уведомление после настройки сервисов
+notify_services:
+  extends: .notify_template
+  variables:
+    PLAYBOOK_INDEX: "1"
+    NOTIFY_FILES: 'r0_server_ntp.txt'
+    MESSAGE: "Результаты выполнения Ansible playbooks:\n1) playbook #3 выполнен успешно! \nНастроено: \n - NTP\n"
+  needs:
+    - configured_ntp
+  stage: notify_services

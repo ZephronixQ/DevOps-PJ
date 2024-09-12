@@ -1,6 +1,10 @@
 include:
   - local: 'gitlab-ci/ci-templates.yml'
 
+stages:
+  - configure_network
+  - notify_network
+
 # Шаблон для установки IP
 .configure_ip:
   extends: .ip_template
@@ -90,7 +94,7 @@ configured_ip:
     - r0.server
   needs:
     - Installing_packages
-  stage: configure_ip
+  stage: configure_network
 
 configured_dhcp4:
   extends: .configure_dhcp4
@@ -101,7 +105,7 @@ configured_dhcp4:
     - r0.server
   needs:
     - configured_ip
-  stage: configure_ip
+  stage: configure_network
 
 configured_dhcp6v1:
   extends: .configure_dhcp6v1
@@ -112,7 +116,7 @@ configured_dhcp6v1:
     - r0.server
   needs:
     - configured_dhcp4
-  stage: configure_ip
+  stage: configure_network
 
 configured_resnet:
   extends: .configure_resnet
@@ -123,7 +127,7 @@ configured_resnet:
     - r0.server
   needs:
     - configured_dhcp6v1
-  stage: configure_ip
+  stage: configure_network
 
 configured_dhcp6v2:
   extends: .configure_dhcp6v2
@@ -134,7 +138,7 @@ configured_dhcp6v2:
     - r0.server
   needs:
     - configured_resnet
-  stage: configure_ip
+  stage: configure_network
 
 configured_route:
   extends: .configure_route
@@ -145,7 +149,7 @@ configured_route:
     - r0.server
   needs:
     - configured_dhcp6v2
-  stage: configure_ip
+  stage: configure_network
 
 configured_vpn:
   extends: .configure_vpn
@@ -156,7 +160,7 @@ configured_vpn:
     - r0.server
   needs:
     - configured_route
-  stage: configure_ip
+  stage: configure_network
 
 configured_dns:
   extends: .configure_dns
@@ -167,7 +171,7 @@ configured_dns:
     - r0.server
   needs:
     - configured_vpn
-  stage: configure_ip
+  stage: configure_network
 
 configured_work0:
   extends: .configure_work0
@@ -178,7 +182,7 @@ configured_work0:
     - r0.server
   needs:
     - configured_dns
-  stage: configure_ip
+  stage: configure_network
 
 configured_work1:
   extends: .configure_work1
@@ -189,15 +193,15 @@ configured_work1:
     - r0.server
   needs:
     - configured_work0
-  stage: configure_ip
+  stage: configure_network
 
 # Уведомление после конфигурирования сети
-notify_ip:
+notify_network:
   extends: .notify_template
   variables:
     PLAYBOOK_INDEX: "1"
-    NOTIFY_FILES: 'r0_server_packages.txt'
+    NOTIFY_FILES: 'r0_server_ip.txt'
     MESSAGE: "Результаты выполнения Ansible playbooks:\n1) playbook #2 выполнен успешно! \nНастроено: \n - IPv4 \n - IPv6 \n - DHCPv4 \n - DHCPv6 \n - Routing \n - VPN \n - OSPF \n - DNS\n"
   needs:
     - configured_work1
-  stage: notify_ip
+  stage: notify_network

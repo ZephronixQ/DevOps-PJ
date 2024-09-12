@@ -1,0 +1,15 @@
+
+server master iburst
+pool 10.0.0.1 prefer iburst
+
+confdir /etc/chrony/conf.d
+
+driftfile /var/lib/chrony/chrony.drift
+
+ntsdumpdir /var/lib/chrony
+
+log tracking measurements statistics
+
+logdir /var/log/chrony
+
+makestep 10 30
