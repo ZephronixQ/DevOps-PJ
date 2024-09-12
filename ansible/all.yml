@@ -27,3 +27,5 @@
         name: all
       tags:
         - ntp
+        - nfs
+        - cups

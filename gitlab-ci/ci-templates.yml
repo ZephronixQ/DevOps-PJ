@@ -137,6 +137,20 @@
     TAGS: ntp
     FILE_SUFFIX: ntp.txt
 
+# Шаблон для настройки NFS
+.nfs_template:
+  extends: .templates
+  variables:
+    TAGS: nfs
+    FILE_SUFFIX: nfs.txt
+
+# Шаблон для настройки CUPS
+.cups_template:
+  extends: .templates
+  variables:
+    TAGS: cups
+    FILE_SUFFIX: cups.txt
+
 ######################################################################################################################
 #                                                  SECURITIES                                                        #
 ######################################################################################################################

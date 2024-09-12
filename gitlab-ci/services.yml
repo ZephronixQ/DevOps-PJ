@@ -13,6 +13,22 @@ stages:
       - $NOTIFY_FILES
     expire_in: 1 hour
 
+# Шаблон для установки NTP
+.configure_nfs:
+  extends: .nfs_template
+  artifacts:
+    paths:
+      - $NOTIFY_FILES
+    expire_in: 1 hour
+
+# Шаблон для установки NTP
+.configure_cups:
+  extends: .cups_template
+  artifacts:
+    paths:
+      - $NOTIFY_FILES
+    expire_in: 1 hour
+
 configured_ntp:
   extends: .configure_ntp
   variables:
@@ -22,13 +38,35 @@ configured_ntp:
     - r0.server
   stage: configure_services
 
+configured_nfs:
+  extends: .configure_ntp
+  variables:
+    SERVER_LIMIT: 'r0_server'
+    NOTIFY_FILES: 'r0_server_nfs.txt'
+  tags:
+    - r0.server
+  needs:
+    - configured_ntp
+  stage: configure_services
+
+configured_cups:
+  extends: .configure_ntp
+  variables:
+    SERVER_LIMIT: 'r0_server'
+    NOTIFY_FILES: 'r0_server_cups.txt'
+  tags:
+    - r0.server
+  needs:
+    - configured_nfs
+  stage: configure_services
+
 # Уведомление после настройки сервисов
 notify_services:
   extends: .notify_template
   variables:
     PLAYBOOK_INDEX: "1"
     NOTIFY_FILES: 'r0_server_ntp.txt'
-    MESSAGE: "Результаты выполнения Ansible playbooks:\n1) playbook #3 выполнен успешно! \nНастроено: \n - NTP\n"
+    MESSAGE: "Результаты выполнения Ansible playbooks:\nPlaybook #3 выполнен успешно! \nНастроено: \n - NTP\n - NFS\n - CUPS\n"
   needs:
-    - configured_ntp
+    - configured_cups
   stage: notify_services

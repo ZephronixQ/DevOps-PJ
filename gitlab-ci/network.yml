@@ -201,7 +201,7 @@ notify_network:
   variables:
     PLAYBOOK_INDEX: "1"
     NOTIFY_FILES: 'r0_server_ip.txt'
-    MESSAGE: "Результаты выполнения Ansible playbooks:\n1) playbook #2 выполнен успешно! \nНастроено: \n - IPv4 \n - IPv6 \n - DHCPv4 \n - DHCPv6 \n - Routing \n - VPN \n - OSPF \n - DNS\n"
+    MESSAGE: "Результаты выполнения Ansible playbooks:\nPlaybook #2 выполнен успешно! \nНастроено: \n - IPv4 \n - IPv6 \n - DHCPv4 \n - DHCPv6 \n - Routing \n - VPN \n - OSPF \n - DNS\n"
   needs:
     - configured_work1
   stage: notify_network

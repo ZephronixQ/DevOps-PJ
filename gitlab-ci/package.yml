@@ -28,7 +28,7 @@ notify_packages:
   variables:
     PLAYBOOK_INDEX: "1"
     NOTIFY_FILES: 'r0_server_packages.txt'
-    MESSAGE: "Результаты выполнения Ansible playbooks:\n1) playbook #1 выполнен успешно! (Installing apt and hostname)\n"
+    MESSAGE: "Результаты выполнения Ansible playbooks:\nPlaybook #1 выполнен успешно! (Installing apt and hostname)\n"
   needs:
     - Installing_packages
   stage: notify_packages

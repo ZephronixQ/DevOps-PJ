@@ -21,3 +21,5 @@
   include_tasks: services/main.yml
   tags:
     - ntp
+    - nfs
+    - cups

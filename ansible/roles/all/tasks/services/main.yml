@@ -34,6 +34,56 @@
         cmd: ip route del default via {{ ip_address.stdout }} dev ens33
       when: ip_address.stdout != ''
 
-    - name: 
+    - name:
       ansible.builtin.shell:
         cmd: "timedatectl set-timezone Europe/Moscow && systemctl restart chrony"
+
+- name: "Настройка NFS"
+  become: true
+  tags:
+    - nfs
+  when: inventory_hostname in ['R1', 'PC_R1']
+  block:
+    - name: Настройка NFS-server
+      ansible.builtin.shell: |
+        mkdir -p /mnt/R1
+        chmod -R 777 /mnt/R1
+        echo "Hello to R1" > /mnt/R1/server1.txt && ls -l /mnt/R1/server1.txt
+        echo "/mnt/R1 *(rw,sync,no_subtree_check)" > /etc/exports
+        exportfs -ra
+      when: inventory_hostname == 'PC_R1'
+
+    - name: Получение IP-адреса для интерфейса ens33
+      shell: ip a show dev ens33 | grep 'inet ' | awk '{print $2}' | cut -d/ -f1
+      when: inventory_hostname == 'PC_R1'
+      register: ip_address
+      changed_when: false
+
+    - name: Распространение IP-адреса на другие хосты
+      set_fact:
+        ip_address: "{{ ip_address.stdout }}"
+      when: inventory_hostname == 'PC_R1'
+      delegate_to: localhost
+
+    - name: Настройка NFS-client на хосте R1
+      ansible.builtin.shell: |
+        mkdir -p /mnt/R1
+        mount {{ hostvars['PC_R1'].ip_address }}:/mnt/R1 /mnt/R1
+      when:
+        - inventory_hostname == 'R1'
+        - hostvars['PC_R1'].ip_address != ''
+
+- name: "Настройка CUPS"
+  become: true
+  tags:
+    - cups
+  when: inventory_hostname == 'PC_R1'
+  block:
+    - name: Настройка CUPS на сервере PC-R1
+      ansible.builtin.shell: |
+        cupsctl --remote-admin --remote-any --share-printers
+        echo "FileDevice Yes" >> /etc/cups/cups-files.conf
+        systemctl restart cups
+        mkdir -p /var/spool/virtual_printer
+        chown -R lp:lp /var/spool/virtual_printer
+        lpadmin -p new_print -E -v file:///var/spool/virtual_printer
