@@ -5,57 +5,50 @@
 │   └── hosts
 ├── README.md
 └── roles
-    ├── network_configuration
-    │   ├── files
-    │   ├── meta
-    │   │   └── main.yml
-    │   ├── tasks
-    │   │   ├── configure_dhcp.yml
-    │   │   ├── configure_network.yml
-    │   │   ├── configure_routing.yml
-    │   │   ├── main.yml
-    │   │   └── package_installation.yml
-    │   ├── templates
-    │   └── vars
-    ├── package_installation
-    │   ├── meta
-    │   │   └── main.yml
-    │   ├── tasks
-    │   │   └── main.yml
-    │   └── vars
-    │       └── main.yml
-    ├── security_configuration
-    │   ├── files
-    │   ├── meta
-    │   │   └── main.yml
-    │   ├── tasks
-    │   │   ├── configure_firewall.yml
-    │   │   ├── configure_ssh.yml
-    │   │   ├── configure_vpn.yml
-    │   │   └── main.yml
-    │   └── templates
-    ├── services_configuration
-    │   ├── files
-    │   ├── meta
-    │   │   └── main.yml
-    │   ├── tasks
-    │   │   ├── configure_cups.yml
-    │   │   ├── configure_dns.yml
-    │   │   ├── configure_mail_server.yml
-    │   │   ├── configure_nfs.yml
-    │   │   ├── configure_ntp.yml
-    │   │   └── main.yml
-    │   └── templates
-    └── system_management
+    └── all
         ├── files
         │   ├── backup_PC-R1.sh
-        │   └── enc_PC-R2.sh
+        │   ├── chrony.conf-client
+        │   ├── chrony.conf-server
+        │   ├── daemons
+        │   ├── db.r1.work
+        │   ├── db.r2.work
+        │   ├── duid-R1.txt
+        │   ├── duid-R2.txt
+        │   ├── enc_PC-R2.sh
+        │   ├── isc-dhcp-server
+        │   ├── mac-to-PC_R1.txt
+        │   ├── mac-to-PC_R2.txt
+        │   ├── named.conf.local
+        │   ├── named.conf.options
+        │   ├── pc-r1.sh
+        │   ├── pc-r2.sh
+        │   ├── r1-ospf.sh
+        │   ├── r1-vpn.sh
+        │   ├── r2-ospf.sh
+        │   ├── r2-vpn.sh
+        │   └── resolv.conf
+        ├── handlers
+        │   └── main.yml
         ├── meta
         │   └── main.yml
         ├── tasks
-        │   ├── configure_scripts_and_users.yml
-        │   ├── install_clamav.yml
-        │   └── main.yml
-        └── templates
+        │   ├── main.yml
+        │   ├── network
+        │   │   └── main.yml
+        │   ├── package
+        │   │   └── main.yml
+        │   ├── security
+        │   │   └── main.yml
+        │   └── services
+        │       └── main.yml
+        ├── templates
+        │   ├── dhcpd6.conf.j2
+        │   ├── dhcpd6d.conf.j2
+        │   ├── dhcpd.conf.j2
+        │   ├── ipsec.conf.j2
+        │   └── radvd.conf.j2
+        └── vars
+            └── main.yml
 
-28 directories, 31 files
+14 directories, 38 files
